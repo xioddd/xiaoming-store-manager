@@ -1,0 +1,90 @@
+{
+  "checked_date": "2026-10-22",
+  "author_note": "张迪容，浙江大学；作者确认独立开发者身份，AI 辅助开发。",
+  "scenario": {
+    "store": "滨江宝龙店",
+    "date": "2026-10-23",
+    "weather": "高温",
+    "promotion": true,
+    "holiday": false
+  },
+  "plan": {
+    "total_orders": 389,
+    "revenue": 7949,
+    "peak": "12:00 - 13:30",
+    "peak_orders": 121,
+    "staff_needed": 3,
+    "staff_available": 6
+  },
+  "backtest": {
+    "mape": 4.2,
+    "accuracy": 100.0,
+    "samples": 42
+  },
+  "sop": [
+    {
+      "问题": "封口机漏液应该怎么处理？",
+      "预期结果": "命中",
+      "预期来源": "封口机异常处理",
+      "实际结果": "命中",
+      "实际来源": "封口机异常处理",
+      "评估": "通过"
+    },
+    {
+      "问题": "鲜切水果可以放到第二天吗？",
+      "预期结果": "命中",
+      "预期来源": "鲜果原料储存规范",
+      "实际结果": "命中",
+      "实际来源": "鲜果原料储存规范",
+      "评估": "通过"
+    },
+    {
+      "问题": "顾客喝完不舒服应该怎么办？",
+      "预期结果": "命中",
+      "预期来源": "顾客投诉处理",
+      "实际结果": "命中",
+      "实际来源": "顾客投诉处理",
+      "评估": "通过"
+    },
+    {
+      "问题": "店员迟到扣多少钱？",
+      "预期结果": "转人工",
+      "预期来源": "当前 SOP 未覆盖",
+      "实际结果": "转人工",
+      "实际来源": "当前 SOP 未覆盖",
+      "评估": "通过"
+    },
+    {
+      "问题": "顾客要求赔偿该赔多少？",
+      "预期结果": "转人工",
+      "预期来源": "当前 SOP 未覆盖",
+      "实际结果": "转人工",
+      "实际来源": "当前 SOP 未覆盖",
+      "评估": "通过"
+    }
+  ],
+  "campaign_comparison": {
+    "conversion_rate_delta": 0.02099999999999999,
+    "average_order_value_delta": -3.0637584415584413,
+    "revenue_per_user_delta": -0.06105999999999989,
+    "estimated_incremental_revenue": -61.05999999999989
+  },
+  "numeric_checker_example": {
+    "input": "高峰时段 12:00 - 13:30，奶基底需求 7,524 ml。",
+    "result": {
+      "通过": false,
+      "未在输入数据中找到的数字": [
+        "00",
+        "12",
+        "13",
+        "30",
+        "7,524"
+      ]
+    },
+    "scope": "本地构造的复现输入，不是历史用户反馈或模型原始回答。"
+  },
+  "tests": {
+    "passed": true,
+    "output": "2026-10-22 19:36:56.500 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.\ntest_chinese_csv_headers_are_normalized (test_campaign.CampaignMetricsTests) ... ok\ntest_demo_data_is_reproducible_and_balanced (test_campaign.CampaignMetricsTests) ... ok\ntest_metrics_use_group_assignment_as_conversion_denominator (test_campaign.CampaignMetricsTests) ... ok\ntest_validation_rejects_click_without_exposure (test_campaign.CampaignMetricsTests) ... ok\ntest_validation_rejects_coupon_sent_to_control_group (test_campaign.CampaignMetricsTests) ... ok\ntest_campaign_review_uses_its_own_dify_key (test_quality_checks.QualityCheckTests) ... ok\ntest_campaign_workflow_inputs_match_dify_fields_and_python_metrics (test_quality_checks.QualityCheckTests) ... ok\ntest_fixed_sop_cases_cover_hits_and_human_escalation (test_quality_checks.QualityCheckTests) ... ok\ntest_numeric_consistency_accepts_computed_values_and_flags_new_values (test_quality_checks.QualityCheckTests) ... ok\ntest_operational_risks_create_prioritized_actions_with_owner_and_due_time (test_quality_checks.QualityCheckTests) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.020s\n\nOK\n"
+  }
+}

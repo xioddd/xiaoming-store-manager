@@ -13,6 +13,7 @@ from typing import Dict, Iterable, List, Tuple
 
 import numpy as np
 import pandas as pd
+import altair as alt
 import streamlit as st
 from campaign import (
     COLUMN_LABELS,
@@ -46,19 +47,24 @@ STORE_META = {
 }
 
 PRODUCTS = [
+    {"name": "超A芝士葡萄", "category": "鲜果茶", "price": 22, "recipe": {"葡萄果肉": 100, "葡萄汁": 70, "芝士奶盖": 45, "茉莉茶汤": 80, "冰块": 160}},
+    {"name": "超A芝士桃桃", "category": "鲜果茶", "price": 22, "recipe": {"桃子果肉": 95, "桃汁": 65, "芝士奶盖": 45, "茉莉茶汤": 80, "冰块": 160}},
+    {"name": "芝士杨梅", "category": "鲜果茶", "price": 22, "recipe": {"杨梅果肉": 95, "杨梅汁": 65, "芝士奶盖": 45, "茉莉茶汤": 80, "冰块": 160}},
+    {"name": "青橘西柚冰冰茶", "category": "鲜果茶", "price": 18, "recipe": {"青橘": 45, "西柚果肉": 55, "茉莉茶汤": 220, "果糖": 22, "冰块": 180}},
     {"name": "杨枝甘露", "category": "鲜果茶", "price": 22, "recipe": {"芒果果肉": 90, "西柚果肉": 35, "椰浆": 80, "西米": 45}},
     {"name": "多肉葡萄", "category": "鲜果茶", "price": 21, "recipe": {"葡萄果肉": 100, "葡萄汁": 70, "芝士奶盖": 45, "冰块": 160}},
-    {"name": "芝芝莓莓", "category": "鲜果茶", "price": 22, "recipe": {"草莓果肉": 95, "草莓汁": 65, "芝士奶盖": 45, "冰块": 160}},
     {"name": "茉莉奶绿", "category": "奶茶", "price": 15, "recipe": {"茉莉茶汤": 220, "奶基底": 80, "果糖": 25, "冰块": 160}},
-    {"name": "生椰拿铁", "category": "咖啡", "price": 19, "recipe": {"椰乳": 160, "咖啡液": 60, "果糖": 15, "冰块": 150}},
-    {"name": "金桂乌龙", "category": "纯茶", "price": 14, "recipe": {"乌龙茶汤": 260, "桂花糖浆": 18, "冰块": 160}},
-    {"name": "柠檬水", "category": "清爽饮", "price": 10, "recipe": {"柠檬汁": 45, "果糖": 22, "冰块": 180}},
     {"name": "芋泥波波", "category": "奶茶", "price": 20, "recipe": {"芋泥": 90, "奶基底": 90, "珍珠": 55, "冰块": 130}},
 ]
 
 INGREDIENT_META = {
     "芒果果肉": {"unit": "g", "shelf_life": 2, "lead_time": 1},
     "西柚果肉": {"unit": "g", "shelf_life": 2, "lead_time": 1},
+    "桃子果肉": {"unit": "g", "shelf_life": 2, "lead_time": 1},
+    "桃汁": {"unit": "ml", "shelf_life": 5, "lead_time": 2},
+    "杨梅果肉": {"unit": "g", "shelf_life": 2, "lead_time": 1},
+    "杨梅汁": {"unit": "ml", "shelf_life": 5, "lead_time": 2},
+    "青橘": {"unit": "g", "shelf_life": 2, "lead_time": 1},
     "椰浆": {"unit": "ml", "shelf_life": 5, "lead_time": 2},
     "西米": {"unit": "g", "shelf_life": 1, "lead_time": 1},
     "葡萄果肉": {"unit": "g", "shelf_life": 2, "lead_time": 1},
@@ -120,158 +126,8 @@ SOP_DOCS = [
 
 
 def inject_css() -> None:
-    st.markdown(
-        """
-        <style>
-        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
-
-        :root {
-            --ink: #182322;
-            --muted: #687774;
-            --line: #dfe7e1;
-            --paper: #f7f8f3;
-            --panel: #ffffff;
-            --mint: #dceee5;
-            --green: #1f6657;
-            --orange: #d95f39;
-            --amber: #d69b2d;
-            --red: #bc4b4b;
-        }
-        html, body, [class*="css"] { font-family: 'Manrope', sans-serif; }
-        .stApp { background: var(--paper); color: var(--ink); }
-        [data-testid="stHeader"] { background: transparent; }
-        [data-testid="stToolbar"] { display: none; }
-        [data-testid="stSidebar"] {
-            background: #eef3ed;
-            border-right: 1px solid var(--line);
-        }
-        [data-testid="stSidebar"] .block-container { padding-top: 2rem; }
-        .brand-mark {
-            display: flex; align-items: center; gap: 10px; margin-bottom: 26px;
-        }
-        .brand-icon {
-            width: 34px; height: 34px; display: grid; place-items: center;
-            background: var(--ink); color: #f7d783; border-radius: 11px;
-            font-size: 20px; font-weight: 800;
-        }
-        .brand-name { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
-        .brand-sub { color: var(--muted); font-size: 11px; margin-top: 1px; }
-        .eyebrow {
-            font-family: 'DM Mono', monospace; text-transform: uppercase;
-            letter-spacing: 1px; color: var(--green); font-size: 11px; font-weight: 500;
-        }
-        .page-title {
-            font-size: clamp(28px, 4vw, 42px); line-height: 1.08;
-            font-weight: 800; letter-spacing: -1.3px; margin: 5px 0 8px;
-        }
-        .page-desc { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
-        .status-pill {
-            display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px;
-            background: #e7f2ea; border: 1px solid #cae2d2; color: var(--green);
-            border-radius: 100px; font-size: 12px; font-weight: 700;
-        }
-        .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #40a06a; }
-        .section-title { font-size: 17px; font-weight: 800; margin: 14px 0 12px; }
-        .section-caption { color: var(--muted); font-size: 12px; margin-top: -7px; margin-bottom: 12px; }
-        .metric {
-            background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-            padding: 16px 17px; min-height: 116px;
-        }
-        .metric-label {
-            color: var(--muted); font-size: 12px; display: flex; justify-content: space-between;
-            gap: 8px; margin-bottom: 10px;
-        }
-        .metric-value { font-size: 28px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
-        .metric-foot { margin-top: 10px; font-size: 11px; color: var(--muted); }
-        .metric-foot.good { color: var(--green); }
-        .metric-foot.warn { color: var(--orange); }
-        .metric-foot.bad { color: var(--red); }
-        .panel {
-            background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-            padding: 18px 20px; margin-bottom: 16px;
-        }
-        .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-        .panel-title { font-size: 15px; font-weight: 800; }
-        .panel-meta { font-size: 11px; color: var(--muted); }
-        .risk-row {
-            display: grid; grid-template-columns: 12px 1fr auto; gap: 11px; align-items: start;
-            padding: 13px 0; border-bottom: 1px solid #edf1ed;
-        }
-        .risk-row:last-child { border-bottom: 0; padding-bottom: 0; }
-        .risk-dot { width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; }
-        .risk-dot.high { background: var(--red); }
-        .risk-dot.medium { background: var(--amber); }
-        .risk-dot.low { background: #5d9e6f; }
-        .risk-title { font-size: 13px; font-weight: 700; }
-        .risk-detail { color: var(--muted); font-size: 11px; margin-top: 4px; line-height: 1.6; }
-        .risk-tag {
-            font-size: 10px; padding: 4px 7px; border-radius: 5px; font-weight: 700;
-            white-space: nowrap;
-        }
-        .risk-tag.high { color: var(--red); background: #fbeaea; }
-        .risk-tag.medium { color: #9a6d13; background: #fff5d9; }
-        .risk-tag.low { color: var(--green); background: #e6f2e8; }
-        .insight {
-            border-left: 3px solid var(--orange); background: #fff8f0; padding: 13px 15px;
-            color: #5f3a25; font-size: 13px; line-height: 1.65; border-radius: 0 7px 7px 0;
-        }
-        .source-chip {
-            display: inline-block; padding: 4px 8px; border-radius: 5px;
-            background: #edf5ef; color: var(--green); font-size: 10px; font-weight: 700;
-        }
-        .chat-question {
-            background: #f2f6f1; border: 1px solid var(--line); border-radius: 8px;
-            padding: 11px 13px; color: var(--ink); font-size: 13px; margin-bottom: 12px;
-        }
-        .answer-box {
-            background: #1f6657; color: white; border-radius: 9px; padding: 17px 18px;
-            line-height: 1.8; font-size: 13px;
-        }
-        .answer-box strong { color: #f8df97; }
-        .mini-note { color: var(--muted); font-size: 11px; line-height: 1.6; }
-        .footer-note {
-            color: #8c9993; font-size: 11px; text-align: center; margin: 24px 0 10px;
-        }
-        div[data-testid="stMetric"] {
-            background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-            padding: 13px 15px;
-        }
-        div[data-testid="stMetricLabel"] { color: var(--muted); }
-        div[data-testid="stMetricValue"] { color: var(--ink); }
-        .stButton > button {
-            border-radius: 7px; border: 1px solid var(--line); min-height: 36px;
-            font-weight: 700; color: var(--ink); background: white;
-        }
-        .stButton > button:hover { border-color: var(--green); color: var(--green); }
-        .stDownloadButton > button {
-            border-radius: 7px; font-weight: 700; width: 100%;
-        }
-        [data-testid="stFileUploaderDropzoneInstructions"] > * {
-            display: none !important;
-        }
-        [data-testid="stFileUploaderDropzoneInstructions"]::before {
-            content: "将 CSV 文件拖放到此处";
-            display: block;
-            color: #313743;
-            font-size: 14px;
-        }
-        [data-testid="stFileUploaderDropzone"] button {
-            font-size: 0 !important;
-        }
-        [data-testid="stFileUploaderDropzone"] button * {
-            font-size: 0 !important;
-        }
-        [data-testid="stFileUploaderDropzone"] button::after {
-            content: "选择文件"; font-size: 14px;
-        }
-        .stTabs [data-baseweb="tab-list"] { gap: 4px; border-bottom: 1px solid var(--line); }
-        .stTabs [data-baseweb="tab"] { padding: 10px 16px; font-weight: 700; }
-        .stTabs [aria-selected="true"] { color: var(--green); }
-        .dataframe { border: 1px solid var(--line); }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+    stylesheet = Path(__file__).with_name("ui.css").read_text(encoding="utf-8")
+    st.markdown(f"<style>{stylesheet}</style>", unsafe_allow_html=True)
 
 
 def get_secret(name: str) -> str:
@@ -618,8 +474,8 @@ def make_order_data() -> pd.DataFrame:
     rows: List[Dict] = []
     store_factor = {"滨江宝龙店": 1.08, "西湖银泰店": 1.22, "未来科技城店": 0.88}
     product_factor = {
-        "杨枝甘露": 1.06, "多肉葡萄": 1.12, "芝芝莓莓": 0.88, "茉莉奶绿": 1.10,
-        "生椰拿铁": 0.82, "金桂乌龙": 0.74, "柠檬水": 0.92, "芋泥波波": 0.78,
+        "超A芝士葡萄": 1.12, "超A芝士桃桃": 0.88, "芝士杨梅": 0.91, "青橘西柚冰冰茶": 0.92,
+        "杨枝甘露": 1.06, "多肉葡萄": 1.02, "茉莉奶绿": 1.10, "芋泥波波": 0.78,
     }
     for day_offset in range(90):
         current = start + timedelta(days=day_offset)
@@ -705,8 +561,14 @@ def normalize_orders(uploaded: pd.DataFrame) -> pd.DataFrame:
     if missing:
         raise ValueError(f"订单数据缺少字段：{', '.join(sorted(missing))}")
     data = uploaded.copy()
-    data["日期"] = pd.to_datetime(data["日期"]).dt.date
-    data["销量"] = pd.to_numeric(data["销量"], errors="coerce").fillna(0).astype(int)
+    parsed_dates = pd.to_datetime(data["日期"], errors="coerce")
+    if parsed_dates.isna().any():
+        raise ValueError(f"订单数据有 {int(parsed_dates.isna().sum())} 行日期无法识别，请检查“日期”列。")
+    data["日期"] = parsed_dates.dt.date
+    numeric_sales = pd.to_numeric(data["销量"], errors="coerce")
+    if numeric_sales.isna().any() or (numeric_sales < 0).any():
+        raise ValueError("“销量”列需填写不小于 0 的数字；请检查空值、文字或负数。")
+    data["销量"] = numeric_sales.astype(int)
     return data
 
 
@@ -720,7 +582,10 @@ def normalize_inventory(uploaded: pd.DataFrame) -> pd.DataFrame:
         if column not in data.columns:
             data[column] = default
     for column in ["库存量", "日均消耗", "2日内到期量", "保质期"]:
-        data[column] = pd.to_numeric(data[column], errors="coerce").fillna(0)
+        numeric_values = pd.to_numeric(data[column], errors="coerce")
+        if numeric_values.isna().any() or (numeric_values < 0).any():
+            raise ValueError(f"“{column}”列需填写不小于 0 的数字；请检查空值、文字或负数。")
+        data[column] = numeric_values
     return data
 
 
@@ -752,11 +617,25 @@ def forecast_products(
         history = store_orders[store_orders["饮品"] == product["name"]].sort_values("日期")
         same_weekday = history[pd.Series([d.weekday() == target.weekday() for d in history["日期"]], index=history.index)].tail(4)
         recent = history.tail(14)
-        baseline = same_weekday["销量"].mean() if len(same_weekday) >= 2 else recent["销量"].mean()
+        use_same_weekday = len(same_weekday) >= 2
+        baseline = same_weekday["销量"].mean() if use_same_weekday else recent["销量"].mean()
         if pd.isna(baseline):
             baseline = 0
         factor = scenario_factor(target, weather, promotion, holiday, product["category"])
         forecast = max(0, round(baseline * factor))
+        reasons = [f"近{len(same_weekday)}次同星期均值" if use_same_weekday else f"近{len(recent)}条记录均值"]
+        if target.weekday() >= 5:
+            reasons.append("周末 +8%")
+        else:
+            reasons.append("工作日 -2%")
+        if weather == "高温":
+            reasons.append(f"高温 +{10 if product['category'] in ('鲜果茶', '清爽饮') else 3}%")
+        elif weather == "小雨":
+            reasons.append(f"小雨 {('-9%' if product['category'] in ('鲜果茶', '清爽饮') else '+2%')}")
+        if promotion:
+            reasons.append(f"促销 +{12 if product['category'] in ('鲜果茶', '奶茶') else 6}%")
+        if holiday:
+            reasons.append("节假日 +16%")
         rows.append(
             {
                 "饮品": product["name"],
@@ -764,6 +643,7 @@ def forecast_products(
                 "参考均值": round(baseline),
                 "预计销量": forecast,
                 "预计营收": forecast * product["price"],
+                "预测依据": " · ".join(reasons),
             }
         )
     return pd.DataFrame(rows).sort_values("预计销量", ascending=False).reset_index(drop=True)
@@ -874,9 +754,39 @@ def build_plan(
     }
 
 
-def render_risk_panel(risks: List[Dict]) -> None:
+def build_action_items(risks: List[Dict]) -> List[Dict[str, str]]:
+    actions = []
+    for item in risks:
+        if item["tag"] == "缺货风险":
+            ingredient = item["title"].removesuffix("库存不足")
+            actions.append({
+                "title": f"补足{ingredient}备货缺口",
+                "priority": "高优先级",
+                "due": "开店前",
+                "owner": "备料岗",
+            })
+        elif item["tag"] == "临期提醒":
+            ingredient = item["title"].removesuffix("存在临期")
+            actions.append({
+                "title": f"优先使用{ingredient}并记录报损",
+                "priority": "需关注",
+                "due": "本班次",
+                "owner": "值班店员",
+            })
+        elif item["tag"] == "排班提醒":
+            actions.append({
+                "title": "确认高峰岗位，安排支援人手",
+                "priority": "需关注",
+                "due": "11:30 前",
+                "owner": "店长",
+            })
+    return actions
+
+
+def render_risk_panel(risks: List[Dict], store: str, target: date) -> None:
+    actions = build_action_items(risks)
     st.markdown(
-        '<div class="panel"><div class="panel-head"><div class="panel-title">经营风险</div>'
+        '<div class="panel"><div class="panel-head"><div class="panel-title">经营风险与待办</div>'
         f'<div class="panel-meta">{len(risks)} 项提醒</div></div>',
         unsafe_allow_html=True,
     )
@@ -888,6 +798,25 @@ def render_risk_panel(risks: List[Dict]) -> None:
             f'<div class="risk-tag {item["level"]}">{item["tag"]}</div></div>',
             unsafe_allow_html=True,
         )
+    if actions:
+        st.markdown('<div class="section-title">今日先处理</div>', unsafe_allow_html=True)
+        with st.container(key="risk_actions"):
+            done_count = 0
+            scope = f"{store}_{target.isoformat()}"
+            for index, action in enumerate(actions):
+                action_key = f"action_done_{scope}_{index}"
+                action_cols = st.columns([5, 1.5, 2], vertical_alignment="center")
+                with action_cols[0]:
+                    done = st.checkbox(action["title"], key=action_key)
+                with action_cols[1]:
+                    st.caption(action["priority"])
+                with action_cols[2]:
+                    st.caption(f"{action['due']} · {action['owner']}")
+                done_count += int(done)
+            st.progress(done_count / len(actions))
+            st.caption(f"已完成 {done_count}/{len(actions)} 项 · 状态保存在当前会话")
+    else:
+        st.caption("暂时没有需要优先处理的事项。")
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -899,35 +828,83 @@ def render_plan_tab(
     promotion: bool,
     holiday: bool,
     ai_enabled: bool,
+    data_status: str,
 ) -> None:
     st.markdown(
-        f'<div class="eyebrow">每日经营计划 · {target.strftime("%Y.%m.%d")}</div>'
-        f'<div class="page-title">{store} <span style="color:#b9c5be">/</span> 明日计划</div>'
-        '<div class="page-desc">把销量判断、备货动作和高峰排班放在同一张经营计划里。</div>',
+        f'<div class="plan-heading"><div><div class="eyebrow">{STORE_META[store]["area"]}茶事 / 明日安排</div>'
+        f'<div class="page-title">{store} <span style="color:#aab7af">/</span> 明日计划</div>'
+        '<div class="page-desc">销量、备货和高峰岗位，按开店前的执行顺序汇总。</div></div>'
+        f'<div class="plan-ready"><strong>明日备料已排定</strong><span>{target.strftime("%Y年%m月%d日")} · 参考近四个同星期</span></div></div>',
         unsafe_allow_html=True,
     )
-    st.warning("演示模拟数据：内置订单与库存为程序生成，仅用于功能演示，不代表真实门店经营情况。")
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        st.markdown(f'<div class="metric"><div class="metric-label">预计订单 <span>↗</span></div><div class="metric-value">{plan["total_orders"]:,}</div><div class="metric-foot good">模型已完成预测</div></div>', unsafe_allow_html=True)
-    with c2:
-        st.markdown(f'<div class="metric"><div class="metric-label">预计营业额 <span>¥</span></div><div class="metric-value">¥{plan["revenue"]:,}</div><div class="metric-foot">按标准售价估算</div></div>', unsafe_allow_html=True)
-    with c3:
-        st.markdown(f'<div class="metric"><div class="metric-label">高峰时段 <span>⌁</span></div><div class="metric-value" style="font-size:22px">{plan["peak"]}</div><div class="metric-foot warn">约 {plan["peak_orders"]} 单</div></div>', unsafe_allow_html=True)
-    with c4:
-        staff_delta = plan["staff_needed"] - plan["staff_available"]
-        foot = f"建议增配 {staff_delta} 人" if staff_delta > 0 else "现有人手基本覆盖"
-        cls = "warn" if staff_delta > 0 else "good"
-        st.markdown(f'<div class="metric"><div class="metric-label">高峰排班 <span>人</span></div><div class="metric-value">{plan["staff_needed"]} / {plan["staff_available"]}</div><div class="metric-foot {cls}">{foot}</div></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="demo-note"><strong>数据来源</strong><span>{data_status}</span></div>',
+        unsafe_allow_html=True,
+    )
+    st.caption("饮品名称参考古茗公开宣传；此处销量、单价和配方均为模拟估算，实际在售品项与规格以点单小程序为准。")
+    staff_delta = plan["staff_needed"] - plan["staff_available"]
+    staff_foot = f"建议增配 {staff_delta} 人" if staff_delta > 0 else "现有人手基本覆盖"
+    staff_tone = "warn" if staff_delta > 0 else ""
+    st.markdown(
+        '<div class="kpi-grid">'
+        f'<div class="kpi-item"><div class="kpi-label">预计订单</div><div class="kpi-value">{plan["total_orders"]:,}</div><div class="kpi-foot">参考近四个同星期销量</div></div>'
+        f'<div class="kpi-item"><div class="kpi-label">预计营业额</div><div class="kpi-value">¥{plan["revenue"]:,}</div><div class="kpi-foot">按标准售价估算</div></div>'
+        f'<div class="kpi-item"><div class="kpi-label">高峰时段</div><div class="kpi-value time">{plan["peak"]}</div><div class="kpi-foot warn">约 {plan["peak_orders"]} 单</div></div>'
+        f'<div class="kpi-item"><div class="kpi-label">高峰排班</div><div class="kpi-value">{plan["staff_needed"]} / {plan["staff_available"]}</div><div class="kpi-foot {staff_tone}">{staff_foot}</div></div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-    left, right = st.columns([1.45, 1])
+    st.markdown("<div style='height:2px'></div>", unsafe_allow_html=True)
+    with st.container(key="plan_overview"):
+        left, right = st.columns([1.45, 1], gap="large")
     with left:
-        st.markdown('<div class="panel"><div class="panel-head"><div class="panel-title">饮品销量预测</div><div class="panel-meta">含场景修正</div></div>', unsafe_allow_html=True)
-        chart_df = plan["products"].set_index("饮品")[["参考均值", "预计销量"]]
-        st.bar_chart(chart_df, color=["#c9d6cf", "#2c7a6b"], height=260)
-        st.dataframe(
-            plan["products"][["饮品", "品类", "参考均值", "预计销量", "预计营收"]].rename(
+        st.markdown('<div class="panel"><div class="panel-head"><div class="panel-title">饮品销量参考</div><div class="panel-meta">天气 · 促销 · 日历</div></div>', unsafe_allow_html=True)
+        chart_data = plan["products"][['饮品', '参考均值', '预计销量']].melt(
+            id_vars='饮品', var_name='指标', value_name='杯数'
+        )
+        chart = (
+            alt.Chart(chart_data)
+            .mark_bar()
+            .encode(
+                x=alt.X('饮品:N', sort=None, axis=alt.Axis(labelAngle=0, labelLimit=120, labelPadding=8, title=None, tickSize=0, domain=False)),
+                y=alt.Y('杯数:Q', title=None),
+                color=alt.Color(
+                    '指标:N',
+                    sort=['预计销量', '参考均值'],
+                    scale=alt.Scale(domain=['参考均值', '预计销量'], range=['#c9d8d0', '#2c7a6b']),
+                    legend=alt.Legend(orient='bottom', title=None),
+                ),
+                order=alt.Order('指标:N', sort='descending'),
+                tooltip=['饮品:N', '指标:N', '杯数:Q'],
+            )
+            .properties(height=290)
+            .configure_view(stroke=None)
+            .configure_axis(
+                labelColor='#74819a',
+                gridColor='#e5eaf0',
+                domain=False,
+                tickColor='transparent',
+            )
+        )
+        st.altair_chart(
+            chart,
+            use_container_width=True,
+            theme=None,
+            key=f"plan_product_chart_{store}_{target.isoformat()}_{weather}_{int(promotion)}_{int(holiday)}",
+        )
+        product_table = st.empty()
+        table_col, download_col = st.columns(2)
+        with table_col:
+            product_filter = st.selectbox(
+                "筛选饮品",
+                ["全部"] + plan["products"]["饮品"].tolist(),
+                label_visibility="collapsed",
+                key="plan_product_filter",
+            )
+        filtered_products = plan["products"] if product_filter == "全部" else plan["products"][plan["products"]["饮品"] == product_filter]
+        product_table.dataframe(
+            filtered_products[["饮品", "品类", "参考均值", "预计销量", "预计营收", "预测依据"]].rename(
                 columns={"饮品": "饮品", "品类": "品类", "参考均值": "基准", "预计销量": "预测", "预计营收": "营收"}
             ),
             width="stretch",
@@ -936,14 +913,22 @@ def render_plan_tab(
                 "营收": st.column_config.NumberColumn(format="¥%d"),
             },
         )
+        with download_col:
+            st.download_button(
+                "下载销量清单",
+                filtered_products.to_csv(index=False).encode("utf-8-sig"),
+                "饮品销量预测.csv",
+                "text/csv",
+                width="stretch",
+            )
         st.markdown("</div>", unsafe_allow_html=True)
     with right:
-        source_label = "规则计算 + Dify 解读" if ai_enabled else "规则计算 + 预测"
+        source_label = "经营建议 · 已润色" if ai_enabled else "经营参考"
         st.markdown(f'<div class="panel"><div class="panel-head"><div class="panel-title">店长建议</div><div class="source-chip">{source_label}</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="insight">{plan["insight"]}</div>', unsafe_allow_html=True)
         if ai_enabled:
-            if st.button("让 Dify 生成经营解读", key="plan_ai_button", width="stretch"):
-                with st.spinner("Dify 正在整理经营建议..."):
+            if st.button("整理成经营建议", key="plan_ai_button", width="stretch"):
+                with st.spinner("正在整理经营建议..."):
                     try:
                         if dify_is_ready():
                             st.session_state["plan_ai_result"] = generate_plan_dify(
@@ -957,21 +942,21 @@ def render_plan_tab(
                             store, target, weather, promotion, holiday
                         )
                     except Exception as exc:
-                        st.error(f"Dify 调用失败，已保留本地建议：{exc}")
+                        st.error(f"建议整理失败，已保留当前经营参考：{exc}")
             if st.session_state.get("plan_ai_signature") == (store, target, weather, promotion, holiday):
-                st.markdown('<div class="section-title">Dify 经营解读</div>', unsafe_allow_html=True)
+                st.markdown('<div class="section-title">经营建议补充</div>', unsafe_allow_html=True)
                 st.info(st.session_state["plan_ai_result"])
                 number_check = evaluate_numeric_consistency(st.session_state["plan_ai_result"], plan)
                 if number_check["通过"]:
                     st.caption("数字一致性检查：通过，回答中的数字均可在本次计算结果中找到。")
                 else:
                     st.warning(
-                        "数字一致性检查：发现输入数据中未出现的数字 "
+                        "信息核对：发现经营数据中未出现的数字 "
                         + "、".join(number_check["未在输入数据中找到的数字"])
-                        + "。请人工核对 AI 解读。"
+                        + "。请结合当日经营情况核对。"
                     )
         else:
-            st.caption("配置 Dify 应用密钥并开启 AI 后，可生成自然语言经营解读。")
+            st.markdown('<div class="plan-ai-hint">生成一段经营建议，供当班参考。</div>', unsafe_allow_html=True)
         st.markdown('<div class="section-title">今日待办</div>', unsafe_allow_html=True)
         tasks = [
             f"开店前复核 {plan['products'].iloc[0]['饮品']}相关鲜果与小料",
@@ -979,8 +964,9 @@ def render_plan_tab(
             "优先消耗临期原料，完成报损登记",
             "闭店后回填实际销量，为下次预测提供反馈",
         ]
-        for task in tasks:
-            st.checkbox(task, key=f"task_{task}")
+        with st.container(key="plan_actions"):
+            for task in tasks:
+                st.checkbox(task, key=f"task_{task}")
         st.markdown("</div>", unsafe_allow_html=True)
 
     left2, right2 = st.columns([1.45, 1])
@@ -1001,7 +987,7 @@ def render_plan_tab(
         )
         st.markdown("</div>", unsafe_allow_html=True)
     with right2:
-        render_risk_panel(plan["risks"])
+        render_risk_panel(plan["risks"], store, target)
 
     st.markdown('<div class="panel"><div class="panel-head"><div class="panel-title">经营计划反馈</div><div class="panel-meta">用于后续评估建议采纳率</div></div>', unsafe_allow_html=True)
     st.markdown('<div class="mini-note">演示时可以说明：计划不是自动执行，店长确认后才会进入实际备货和排班。</div>', unsafe_allow_html=True)
@@ -1017,6 +1003,24 @@ def render_plan_tab(
             st.session_state["feedback"] = "暂不采纳"
     if st.session_state.get("feedback"):
         st.success(f"已记录：{st.session_state['feedback']}。这条反馈会用于后续评估建议质量。")
+    with st.expander("回填实际订单，查看预测偏差"):
+        result_key = f"actual_orders_{store}_{target.isoformat()}"
+        actual_orders = st.number_input(
+            "当日实际订单数",
+            min_value=0,
+            value=int(st.session_state.get(result_key, 0)),
+            step=1,
+            key=f"actual_orders_input_{store}_{target.isoformat()}",
+        )
+        if st.button("保存实际订单", key=f"save_actual_orders_{store}_{target.isoformat()}"):
+            st.session_state[result_key] = actual_orders
+            st.session_state[f"actual_orders_saved_{store}_{target.isoformat()}"] = True
+        if st.session_state.get(f"actual_orders_saved_{store}_{target.isoformat()}"):
+            delta = actual_orders - plan["total_orders"]
+            st.caption(
+                f"预测 {plan['total_orders']:,} 单，实际 {actual_orders:,} 单，偏差 {delta:+,} 单。"
+                "记录保存在当前会话，可用于当班复核。"
+            )
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -1073,7 +1077,7 @@ def evaluate_numeric_consistency(response: str, plan: Dict) -> Dict:
 
 def render_sop_tab(ai_enabled: bool) -> None:
     st.markdown(
-        '<div class="eyebrow">标准作业流程知识助手</div>'
+        '<div class="eyebrow">店员日常 / 流程参考</div>'
         '<div class="page-title">店员遇到问题，先查标准</div>'
         '<div class="page-desc">基于门店标准作业流程检索答案；知识库没有覆盖时，明确转人工处理。</div>',
         unsafe_allow_html=True,
@@ -1105,28 +1109,29 @@ def render_sop_tab(ai_enabled: bool) -> None:
         else:
             st.warning("当前标准流程库没有找到足够匹配的规范。请联系店长或相关负责人确认，不建议凭经验处理。")
         if ai_enabled:
-            if st.button("让 Dify 解读这条流程规范", key="sop_ai_button"):
-                with st.spinner("Dify 正在根据知识库组织回答..."):
+            if st.button("整理成店长参考", key="sop_ai_button"):
+                with st.spinner("正在整理流程参考..."):
                     try:
                         if dify_is_ready():
                             st.session_state["sop_ai_result"] = generate_sop_dify(question)
                         elif doc and score >= 2:
                             st.session_state["sop_ai_result"] = generate_sop_ai(question, doc)
                         else:
-                            raise RuntimeError("未配置 Dify 应用密钥，且本地检索没有命中相关规范。")
+                            raise RuntimeError("文字建议服务尚未配置，且知识库没有命中相关规范。")
                         st.session_state["sop_ai_signature"] = question
                     except Exception as exc:
-                        st.error(f"Dify 调用失败，已保留本地结果：{exc}")
+                        st.error(f"建议整理失败，已保留现有流程参考：{exc}")
             if st.session_state.get("sop_ai_signature") == question:
-                st.markdown('<div class="section-title">Dify 流程规范解读</div>', unsafe_allow_html=True)
+                st.markdown('<div class="section-title">补充流程参考</div>', unsafe_allow_html=True)
                 st.info(st.session_state["sop_ai_result"])
                 if doc and score >= 2:
-                    st.caption(f"本地检索参考：{doc['title']} · {doc['category']}；请同时核对 Dify 返回的知识库来源。")
+                    st.caption(f"知识库参考：{doc['title']} · {doc['category']}。请结合门店现场情况确认。")
                 else:
-                    st.caption("本地知识库未命中；该问题应由店长或相关负责人确认。请核对 Dify 是否也按未覆盖问题转人工处理。")
+                    st.caption("当前知识库未覆盖此问题，请由店长或相关负责人确认。")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    left, right = st.columns([1.15, 1])
+    with st.container(key="sop_reference"):
+        left, right = st.columns([1.15, 1])
     with left:
         st.markdown('<div class="panel"><div class="panel-head"><div class="panel-title">知识库目录</div><div class="panel-meta">6 份门店规范</div></div>', unsafe_allow_html=True)
         sop_df = pd.DataFrame([{"主题": d["title"], "分类": d["category"], "关键词": " · ".join(d["keywords"][:3])} for d in SOP_DOCS])
@@ -1177,16 +1182,17 @@ def render_data_tab(orders: pd.DataFrame, inventory: pd.DataFrame) -> None:
     st.markdown(
         '<div class="eyebrow">数据与效果评估</div>'
         '<div class="page-title">数据与效果验证</div>'
-        '<div class="page-desc">让演示版不只展示结果，也能说明数据来源、预测方法和当前边界。</div>',
+        '<div class="page-desc">从数据来源、计算方式和实际边界，逐项核对经营建议。</div>',
         unsafe_allow_html=True,
     )
-    st.warning("演示模拟数据：当前内置订单、库存和回测结果均由程序生成；上传自己的 CSV 后才会基于上传数据计算。")
+    st.warning("当前展示样例数据：内置订单、库存与回测结果均由程序生成；上传门店 CSV 后会按文件内容重新计算。")
     metrics = run_backtest(orders)
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("回测样本", f"{metrics['samples']} 组")
-    c2.metric("预测误差 MAPE", f"{metrics['mape']}%")
-    c3.metric("误差在 25% 内", f"{metrics['accuracy']}%")
-    c4.metric("风险识别评估", "尚未评估")
+    with st.container(key="evaluation_metrics"):
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("回测样本", f"{metrics['samples']} 组")
+        c2.metric("预测误差 MAPE", f"{metrics['mape']}%")
+        c3.metric("误差在 25% 内", f"{metrics['accuracy']}%")
+        c4.metric("风险识别评估", "尚未评估")
     st.caption("风险识别需要带有真实风险标签的历史样本；当前数据没有此类标注，因此不展示准确率。")
 
     st.markdown('<div class="section-title">固定 SOP 回归问题集</div>', unsafe_allow_html=True)
@@ -1230,50 +1236,53 @@ def render_data_tab(orders: pd.DataFrame, inventory: pd.DataFrame) -> None:
 
 
 def render_campaign_tab() -> None:
-    st.markdown(
-        '<div class="eyebrow">新品活动复盘</div>'
-        '<div class="page-title">新品活动效果复盘</div>'
-        '<div class="page-desc">对比相同新品推广下，额外发券对点击、转化和客单价的影响。</div>',
-        unsafe_allow_html=True,
-    )
-    st.warning("模拟数据演示：以下用户和结果均为程序生成，不代表真实门店或真实活动表现。")
-    st.markdown(
-        "> 实验假设：对目标用户发送相同的新品推广信息时，额外发放 5 元新品券，能提高 7 天内的购买转化率，同时不显著拉低客单价。"
-    )
-    st.caption("对照组和活动组收到相同推广信息，只有活动组获得优惠券。结果为描述性对比，当前未做统计显著性检验。")
+    with st.container(key="campaign_intro"):
+        st.markdown(
+            '<div class="eyebrow">新品活动复盘</div>'
+            '<div class="page-title">新品活动效果复盘</div>'
+            '<div class="page-desc">对比相同新品推广下，额外发券对点击、转化和客单价的影响。</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div class="campaign-notice"><strong>模拟数据</strong>'
+            '<span>以下用户和结果均为程序生成，不代表真实门店表现。</span>'
+            '<span class="campaign-notice-detail">对照组与活动组收到相同推广，只有活动组获得优惠券；结果为描述性对比，未做统计显著性检验。</span></div>',
+            unsafe_allow_html=True,
+        )
 
-    setup_left, setup_right = st.columns([1.2, 1])
-    with setup_left:
-        st.subheader("活动设置")
-        name_col, product_col = st.columns(2)
-        with name_col:
-            campaign_name = st.text_input("活动名称", "新品饮品 A · 5 元券测试", key="campaign_name")
-        with product_col:
-            product_name = st.text_input("新品名称", "新品饮品 A", key="campaign_product")
-        date_col, coupon_col = st.columns(2)
-        with date_col:
-            start_date = st.date_input("活动开始日期", value=date.today(), key="campaign_start")
-            end_date = start_date + timedelta(days=6)
-            st.caption(f"固定 7 天观察期，预计结束：{end_date.isoformat()}")
-        with coupon_col:
-            coupon_amount = st.number_input("活动组优惠券面额（元）", min_value=0.0, value=5.0, step=1.0, key="campaign_coupon")
-            sample_size = st.slider("每组模拟用户数", min_value=100, max_value=3000, value=1000, step=100, key="campaign_sample_size")
-    with setup_right:
-        st.subheader("执行前核验")
-        st.caption("当前是方案核验清单，不会自动创建或执行活动。")
-        check_cols = st.columns(2)
-        checks = []
-        with check_cols[0]:
-            checks.append(st.checkbox("目标用户范围已确认", key="campaign_check_audience"))
-            checks.append(st.checkbox("两组推广内容和时段一致", key="campaign_check_message"))
-            checks.append(st.checkbox("用户已随机分组", key="campaign_check_random"))
-        with check_cols[1]:
-            checks.append(st.checkbox("活动组单独发放优惠券", value=True, key="campaign_check_coupon"))
-            checks.append(st.checkbox("新品库存和备料已确认", key="campaign_check_stock"))
-            checks.append(st.checkbox("活动时段排班已确认", key="campaign_check_staff"))
-        completed_checks = sum(checks)
-        st.progress(completed_checks / len(checks))
-        st.caption(f"已完成 {completed_checks}/{len(checks)} 项核验")
+    with st.container(key="campaign_setup"):
+        setup_left, setup_right = st.columns([1.2, 1])
+        with setup_left:
+            st.markdown('<div class="campaign-block-title">活动设置</div>', unsafe_allow_html=True)
+            name_col, product_col = st.columns(2)
+            with name_col:
+                campaign_name = st.text_input("活动名称", "新品饮品 A · 5 元券测试", key="campaign_name")
+            with product_col:
+                product_name = st.text_input("新品名称", "新品饮品 A", key="campaign_product")
+            date_col, coupon_col = st.columns(2)
+            with date_col:
+                start_date = st.date_input("活动开始日期", value=date.today(), key="campaign_start")
+                end_date = start_date + timedelta(days=6)
+                st.caption(f"固定 7 天观察期，预计结束：{end_date.isoformat()}")
+            with coupon_col:
+                coupon_amount = st.number_input("活动组优惠券面额（元）", min_value=0.0, value=5.0, step=1.0, key="campaign_coupon")
+                sample_size = st.slider("每组模拟用户数", min_value=100, max_value=3000, value=1000, step=100, key="campaign_sample_size")
+        with setup_right:
+            st.markdown('<div class="campaign-block-title">执行前核验</div>', unsafe_allow_html=True)
+            st.caption("方案核验清单，不会自动创建或执行活动。")
+            check_cols = st.columns(2)
+            checks = []
+            with check_cols[0]:
+                checks.append(st.checkbox("目标用户范围已确认", key="campaign_check_audience"))
+                checks.append(st.checkbox("两组推广内容和时段一致", key="campaign_check_message"))
+                checks.append(st.checkbox("用户已随机分组", key="campaign_check_random"))
+            with check_cols[1]:
+                checks.append(st.checkbox("活动组单独发放优惠券", value=True, key="campaign_check_coupon"))
+                checks.append(st.checkbox("新品库存和备料已确认", key="campaign_check_stock"))
+                checks.append(st.checkbox("活动时段排班已确认", key="campaign_check_staff"))
+            completed_checks = sum(checks)
+            st.progress(completed_checks / len(checks))
+            st.caption(f"已完成 {completed_checks}/{len(checks)} 项核验")
 
     st.divider()
     uploaded = st.file_uploader(
@@ -1310,23 +1319,22 @@ def render_campaign_tab() -> None:
     control = group_metrics["对照组"]
     treatment = group_metrics["活动组"]
 
-    st.subheader("实验结果")
-    st.caption(
-        f"{campaign_name} · {product_name} · {start_date.isoformat()} 至 {end_date.isoformat()} · "
-        f"数据来源：{data_source} · {len(campaign_data):,} 位用户"
-    )
     delta_conversion_pp = comparison["conversion_rate_delta"] * 100
     aov_delta = comparison["average_order_value_delta"]
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric(
-        "下单转化率差异",
-        f"{delta_conversion_pp:+.1f} 个百分点",
-        delta=f"活动组 {treatment['conversion_rate']:.1%} / 对照组 {control['conversion_rate']:.1%}",
-        delta_color="normal",
-    )
-    k2.metric("客单价差异", "—" if aov_delta is None else f"¥{aov_delta:+.2f}")
-    k3.metric("人均收入差异", f"¥{comparison['revenue_per_user_delta']:+.2f}")
-    k4.metric("活动组券核销率", "—" if treatment["coupon_redemption_rate"] is None else f"{treatment['coupon_redemption_rate']:.1%}")
+    with st.container(key="campaign_results"):
+        st.markdown('<div class="campaign-results-head"><div class="campaign-block-title">实验结果</div>'
+            f'<div class="campaign-results-meta">{campaign_name} · {product_name} · {start_date.isoformat()} 至 {end_date.isoformat()} · '
+            f'数据来源：{data_source} · {len(campaign_data):,} 位用户</div></div>', unsafe_allow_html=True)
+        k1, k2, k3, k4 = st.columns(4)
+        k1.metric(
+            "下单转化率差异",
+            f"{delta_conversion_pp:+.1f} 个百分点",
+            delta=f"活动组 {treatment['conversion_rate']:.1%} / 对照组 {control['conversion_rate']:.1%}",
+            delta_color="normal",
+        )
+        k2.metric("客单价差异", "—" if aov_delta is None else f"¥{aov_delta:+.2f}")
+        k3.metric("人均收入差异", f"¥{comparison['revenue_per_user_delta']:+.2f}")
+        k4.metric("活动组券核销率", "—" if treatment["coupon_redemption_rate"] is None else f"{treatment['coupon_redemption_rate']:.1%}")
 
     summary_rows = []
     for group_name in ("对照组", "活动组"):
@@ -1348,29 +1356,60 @@ def render_campaign_tab() -> None:
                 "人均收入": f"¥{item['revenue_per_user']:.2f}",
             }
         )
-    st.dataframe(pd.DataFrame(summary_rows), width="stretch", hide_index=True)
+    with st.container(key="campaign_breakdown"):
+        st.dataframe(pd.DataFrame(summary_rows), width="stretch", hide_index=True)
 
-    chart_left, chart_right = st.columns(2)
-    with chart_left:
-        st.markdown("**点击率与下单转化率**")
-        rate_chart = pd.DataFrame(
-            {
-                "点击率": [control["click_rate"] or 0, treatment["click_rate"] or 0],
-                "下单转化率": [control["conversion_rate"] or 0, treatment["conversion_rate"] or 0],
-            },
-            index=["对照组", "活动组"],
-        )
-        st.bar_chart(rate_chart, y=["点击率", "下单转化率"], height=250)
-    with chart_right:
-        st.markdown("**客单价与人均收入**")
-        revenue_chart = pd.DataFrame(
-            {
-                "客单价（元）": [control["average_order_value"] or 0, treatment["average_order_value"] or 0],
-                "人均收入（元）": [control["revenue_per_user"], treatment["revenue_per_user"]],
-            },
-            index=["对照组", "活动组"],
-        )
-        st.bar_chart(revenue_chart, y=["客单价（元）", "人均收入（元）"], height=250)
+        chart_left, chart_right = st.columns(2)
+        with chart_left:
+            st.markdown("**点击率与下单转化率**")
+            rate_chart = pd.DataFrame(
+                {
+                    "实验组": ["对照组", "活动组"],
+                    "点击率": [control["click_rate"] or 0, treatment["click_rate"] or 0],
+                    "下单转化率": [control["conversion_rate"] or 0, treatment["conversion_rate"] or 0],
+                }
+            )
+            rate_chart = rate_chart.melt(id_vars="实验组", var_name="指标", value_name="比率")
+            rate_plot = (
+                alt.Chart(rate_chart)
+                .mark_bar()
+                .encode(
+                    x=alt.X("实验组:N", sort=["对照组", "活动组"], axis=alt.Axis(labelAngle=0, labelPadding=8, title=None, tickSize=0, domain=False)),
+                    xOffset=alt.XOffset("指标:N"),
+                    y=alt.Y("比率:Q", axis=alt.Axis(title=None, format=".0%", domain=False)),
+                    color=alt.Color("指标:N", scale=alt.Scale(range=["#9db6a5", "#2c7a6b"]), legend=alt.Legend(orient="bottom", title=None)),
+                    tooltip=["实验组:N", "指标:N", alt.Tooltip("比率:Q", format=".1%")],
+                )
+                .properties(height=265)
+                .configure_view(stroke=None)
+                .configure_axis(labelColor="#74819a", gridColor="#e5eaf0", tickColor="transparent")
+            )
+            st.altair_chart(rate_plot, use_container_width=True, theme=None)
+        with chart_right:
+            st.markdown("**客单价与人均收入**")
+            revenue_chart = pd.DataFrame(
+                {
+                    "实验组": ["对照组", "活动组"],
+                    "客单价（元）": [control["average_order_value"] or 0, treatment["average_order_value"] or 0],
+                    "人均收入（元）": [control["revenue_per_user"], treatment["revenue_per_user"]],
+                }
+            )
+            revenue_chart = revenue_chart.melt(id_vars="实验组", var_name="指标", value_name="金额")
+            revenue_plot = (
+                alt.Chart(revenue_chart)
+                .mark_bar()
+                .encode(
+                    x=alt.X("实验组:N", sort=["对照组", "活动组"], axis=alt.Axis(labelAngle=0, labelPadding=8, title=None, tickSize=0, domain=False)),
+                    xOffset=alt.XOffset("指标:N"),
+                    y=alt.Y("金额:Q", axis=alt.Axis(title=None, format=".0f", domain=False)),
+                    color=alt.Color("指标:N", scale=alt.Scale(range=["#c9b88b", "#c56b42"]), legend=alt.Legend(orient="bottom", title=None)),
+                    tooltip=["实验组:N", "指标:N", alt.Tooltip("金额:Q", format=".2f")],
+                )
+                .properties(height=265)
+                .configure_view(stroke=None)
+                .configure_axis(labelColor="#74819a", gridColor="#e5eaf0", tickColor="transparent")
+            )
+            st.altair_chart(revenue_plot, use_container_width=True, theme=None)
 
     if delta_conversion_pp > 0:
         st.info(f"本次数据中，活动组转化率点估计高于对照组 {delta_conversion_pp:.1f} 个百分点。")
@@ -1391,7 +1430,7 @@ def render_campaign_tab() -> None:
             "text/csv",
         )
         st.caption("每位用户一行；“实付金额”已扣除优惠；触达、点击、发券、核销和新客字段使用 1（是）/0（否）。下载的表格可再次上传。")
-    st.caption("Python 已完成指标计算；Dify 只负责依据这些结果生成文字复盘。")
+    st.caption("活动指标依据用户级数据计算，复盘建议可在确认结果后生成。")
     campaign_inputs = build_campaign_workflow_inputs(
         campaign_name,
         product_name,
@@ -1405,21 +1444,21 @@ def render_campaign_tab() -> None:
     campaign_signature = json.dumps(campaign_inputs, ensure_ascii=False, sort_keys=True)
     campaign_key_ready = _is_configured_secret(get_dify_campaign_key())
     if not campaign_key_ready:
-        st.info("先在 .streamlit/secrets.toml 中填写新品活动复盘 Workflow 的 Dify 应用 API Key，然后重启应用。")
+        st.info("请先在接入设置中完成活动复盘服务配置。")
     if st.button(
-        "让 Dify 生成活动复盘",
+        "整理成活动复盘",
         type="primary",
         disabled=not campaign_key_ready,
         key="campaign_dify_button",
     ):
-        with st.spinner("Dify 正在整理活动复盘..."):
+        with st.spinner("正在整理活动复盘..."):
             try:
                 st.session_state["campaign_dify_result"] = generate_campaign_review(campaign_inputs)
                 st.session_state["campaign_dify_signature"] = campaign_signature
             except Exception as exc:
-                st.error(f"Dify 活动复盘调用失败：{exc}")
+                st.error(f"活动复盘暂时无法生成：{exc}")
     if st.session_state.get("campaign_dify_signature") == campaign_signature:
-        st.markdown('<div class="section-title">Dify 活动复盘</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">活动复盘建议</div>', unsafe_allow_html=True)
         st.info(st.session_state["campaign_dify_result"])
 
 
@@ -1433,26 +1472,44 @@ def main() -> None:
     legacy_qwen_ready = qwen_is_ready()
     ai_ready = dify_ready or legacy_qwen_ready
 
+    default_target = date.today() + timedelta(days=1)
+    st.session_state.setdefault("plan_store", list(STORE_META.keys())[0])
+    st.session_state.setdefault("plan_date", default_target)
+    st.session_state.setdefault("plan_weather", "高温")
+    st.session_state.setdefault("plan_promotion", True)
+    st.session_state.setdefault("plan_holiday", False)
+    st.session_state.setdefault("orders_source", "内置模拟订单")
+    st.session_state.setdefault("inventory_source", "内置模拟库存")
+
     with st.sidebar:
         st.markdown(
-            '<div class="brand-mark"><div class="brand-icon">✦</div><div><div class="brand-name">小茗店长</div>'
-            '<div class="brand-sub">茶饮门店经营助手 · 演示版</div></div></div>',
+            '<div class="brand-mark"><div class="brand-icon">茗</div><div><div class="brand-name">小茗店长</div>'
+            '<div class="brand-sub">每天一杯喝不腻</div></div></div>',
             unsafe_allow_html=True,
         )
-        st.markdown('<div class="eyebrow">经营场景</div>', unsafe_allow_html=True)
-        st.caption("选择一个门店，生成明日经营计划")
-        store = st.selectbox("门店", list(STORE_META.keys()), label_visibility="collapsed")
-        default_target = date.today() + timedelta(days=1)
-        target = st.date_input("计划日期", value=default_target, min_value=date(2026, 6, 2), max_value=date(2027, 12, 31))
-        weather = st.selectbox("天气场景", ["高温", "晴", "小雨"], index=0)
-        promotion = st.toggle("有促销活动", value=True)
-        holiday = st.toggle("节假日", value=False)
+        st.markdown(
+            '<div class="eyebrow">经营场景</div>'
+            '<div class="sidebar-note">选好门店，把明日茶事安排妥当</div>',
+            unsafe_allow_html=True,
+        )
+        store = st.selectbox("经营门店", list(STORE_META.keys()), key="plan_store", label_visibility="collapsed")
+        target = st.date_input(
+            "计划日期",
+            min_value=date(2026, 6, 2),
+            max_value=date(2027, 12, 31),
+            key="plan_date",
+            format="YYYY/MM/DD",
+        )
+        weather = st.selectbox("天气场景", ["高温", "晴", "小雨"], key="plan_weather")
+        promotion = st.toggle("有促销活动", key="plan_promotion")
+        holiday = st.toggle("节假日", key="plan_holiday")
         st.divider()
         st.markdown('<div class="eyebrow">数据入口</div>', unsafe_allow_html=True)
         order_file = st.file_uploader("上传订单 CSV", type=["csv"], help="字段：日期、门店、饮品、销量")
         if order_file:
             try:
                 st.session_state["orders"] = normalize_orders(pd.read_csv(order_file))
+                st.session_state["orders_source"] = f"上传订单：{order_file.name}"
                 st.success("订单数据已载入")
             except Exception as exc:
                 st.error(str(exc))
@@ -1460,24 +1517,36 @@ def main() -> None:
         if inventory_file:
             try:
                 st.session_state["inventory"] = normalize_inventory(pd.read_csv(inventory_file))
+                st.session_state["inventory_source"] = f"上传库存：{inventory_file.name}"
                 st.success("库存数据已载入")
             except Exception as exc:
                 st.error(str(exc))
+        current_orders = st.session_state["orders"]
+        order_dates = pd.to_datetime(current_orders["日期"])
+        st.caption(
+            f"订单：{st.session_state['orders_source']} · {order_dates.min().date()} 至 {order_dates.max().date()} · "
+            f"{current_orders['门店'].nunique()} 家门店 / {len(current_orders):,} 条记录"
+        )
+        current_inventory = st.session_state["inventory"]
+        st.caption(
+            f"库存：{st.session_state['inventory_source']} · {current_inventory['门店'].nunique()} 家门店 / "
+            f"{len(current_inventory):,} 项原料"
+        )
         st.divider()
-        st.markdown('<div class="eyebrow">AI 增强</div>', unsafe_allow_html=True)
+        st.markdown('<div class="eyebrow">经营解读</div>', unsafe_allow_html=True)
         ai_enabled = st.toggle(
-            "启用 Dify AI 解读",
+            "生成详细文字建议",
             value=False,
             disabled=not ai_ready,
-            help="只在点击 AI 按钮时调用，不会因页面刷新自动调用。优先使用 Dify；未配置时保留旧版通义千问兼容模式。",
+            help="只在点击生成建议时调用已配置的服务。",
         )
         if dify_ready:
-            st.success("已配置 Dify · 通义千问 3 工作流")
+            st.success("建议生成服务已接通")
         elif legacy_qwen_ready:
-            st.success("已配置旧版通义千问模型")
+            st.success("文字建议服务已接通")
         else:
-            st.info("当前为本地规则模式。请配置 Dify 应用密钥后启用 AI。")
-        with st.expander("接口配置说明"):
+            st.info("当前显示门店经营参考；文字建议服务尚未接通。")
+        with st.expander("接入设置"):
             st.code(
                 'DIFY_BASE_URL = "https://api.dify.ai/v1"\n'
                 'DIFY_SOP_API_KEY = "app-标准流程助手密钥"\n'
@@ -1485,23 +1554,26 @@ def main() -> None:
                 'DIFY_CAMPAIGN_API_KEY = "app-新品活动复盘Workflow密钥"',
                 language="toml",
             )
-            st.caption("Dify 会接收当前经营摘要或标准作业流程问题。请只使用模拟数据或已获授权的数据。")
+            st.caption("经营摘要或流程问题仅在主动生成建议时发送。请只使用模拟数据或已获授权的数据。")
         st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-        status_text = "Dify 已配置 · 演示数据已就绪" if dify_ready else "本地模式 · 演示数据已就绪"
-        st.markdown(f'<div class="status-pill"><span class="status-dot"></span>{status_text}</div>', unsafe_allow_html=True)
-        st.markdown('<div class="footer-note">版本 0.2 · 本地规则计算 + Dify 智能解读</div>', unsafe_allow_html=True)
+        status_text = "建议生成服务已接通" if dify_ready else "门店经营数据已就绪"
+        st.markdown(f'<div class="connection"><span class="status-dot"></span>{status_text}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="footer-note">版本 0.3 · 门店经营助手</div>', unsafe_allow_html=True)
 
     orders = st.session_state["orders"]
     inventory = st.session_state["inventory"]
-    plan = build_plan(orders, inventory, store, target, weather, promotion, holiday)
-    tabs = st.tabs(["经营计划", "标准流程助手", "活动复盘", "数据与评估"])
-    with tabs[0]:
-        render_plan_tab(plan, store, target, weather, promotion, holiday, ai_enabled)
-    with tabs[1]:
+    plan_tab, sop_tab, campaign_tab, data_tab = st.tabs(
+        ["经营计划", "标准流程助手", "活动复盘", "数据与评估"]
+    )
+    with plan_tab:
+        plan = build_plan(orders, inventory, store, target, weather, promotion, holiday)
+        data_status = f"订单 {st.session_state['orders_source']}；库存 {st.session_state['inventory_source']}。预测结果仅覆盖当前门店和计划日期。"
+        render_plan_tab(plan, store, target, weather, promotion, holiday, ai_enabled, data_status)
+    with sop_tab:
         render_sop_tab(ai_enabled)
-    with tabs[2]:
+    with campaign_tab:
         render_campaign_tab()
-    with tabs[3]:
+    with data_tab:
         render_data_tab(orders, inventory)
 
 
